@@ -19,8 +19,7 @@ class QPubNubPublisher : public QPubNubBase {
   Q_OBJECT
 signals:
   void published(const QString& timeToken);
-  void error(const QString& message);
-
+  
 public:
   QPubNubPublisher(QNetworkAccessManager* networkAccessManager, const QString& publishKey, const QString& subscribeKey, const QString& channel, QObject* parent= nullptr) 
     : QPubNubBase(networkAccessManager, parent), 
@@ -124,9 +123,8 @@ private slots:
   }
 
   void readyRead() {
-    auto reply = qobject_cast<QNetworkReply*>(sender());
-    reply->deleteLater();
-    if (reply->error() != QNetworkReply::NoError) {
+    auto reply = qobject_cast<QNetworkReply*>(sender());    
+    if (handleResponse(reply)) {
       return;
     }
     auto data(reply->readAll());

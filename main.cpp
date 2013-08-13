@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 
     QPubNubSubscriber subscriber(&networkAccessManager, "demo", "hello_world");
     subscriber.subscribe();
-    subscriber.setCipherKey("test");
+    subscriber.decryptMessages("test");
     QObject::connect(&subscriber, &QPubNubSubscriber::updateReceived, [&](const QJsonArray& messages) {
       auto first = messages.at(0);
       qDebug() << "Got update" << first;

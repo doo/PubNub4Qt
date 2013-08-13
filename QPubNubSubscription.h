@@ -22,8 +22,7 @@ class QPubNubSubscriber : public QPubNubBase {
 signals:
   void connected();
   void updateReceived(const QJsonArray& messages);
-  void error(const QString& message);
-
+  
 public:
   QPubNubSubscriber(QNetworkAccessManager* networkAccessManager, const QString& subscribeKey, const QString& channel, const QString& uuid = QString(), QObject* parent = nullptr) : 
     QPubNubBase(networkAccessManager, parent), 
@@ -33,7 +32,7 @@ public:
   }
 
 #ifdef Q_PUBNUB_CRYPT
-  void setCipherKey(const QByteArray& cipherKey) {
+  void decryptMessages(const QByteArray& cipherKey) {
     m_cipherKey = QCryptographicHash::hash(cipherKey, QCryptographicHash::Sha256).toHex();
   }
 #endif
@@ -59,15 +58,8 @@ private slots:
   }
 
   void onSubscribeReadyRead() {
-    auto reply = qobject_cast<QNetworkReply*>(sender());
-    reply->deleteLater();
-    if (reply->error() != QNetworkReply::NoError) {
-      return;
-    }
-
-    const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    if (statusCode / 100 != 2) {
-      emit error(reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString());
+    auto reply = qobject_cast<QNetworkReply*>(sender());    
+    if (handleResponse(reply)) {
       return;
     }
 
