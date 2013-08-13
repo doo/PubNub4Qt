@@ -1,12 +1,11 @@
-
 #include <QtCore/QCoreApplication>
 #include <QNetworkAccessManager>
-#include <QNetworkRequest>
-#include <QNetworkReply>
 #include <QJsonObject>
 #include <QTimer>
-#define PUBNUB_CRYPT
-#include "QPubNub.h"
+#define Q_PUBNUB_CRYPT
+#include "QPubNubPublisher.h"
+#include "QPubNubSubscription.h"
+#pragma comment(lib, "libeay32")
 
 /*
 
@@ -37,23 +36,28 @@ private:
 };
 */
 
+
 int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
 
-    QPubNubPublisher publisher("demo", "demo", "hello_world");
+    QNetworkAccessManager networkAccessManager;
+
+    QPubNubPublisher publisher(&networkAccessManager, "demo", "demo", "hello_world");
+    publisher.signMessages("test");
+    publisher.encryptMessages("test");
     QTimer timer;
     timer.connect(&timer, &QTimer::timeout, [&] {
-      publisher.publish("{\"msg\":\"hi\"}");
+      publisher.publish(QJsonDocument::fromJson("{\"msg\":\"hi\"}").object());
     });
-    timer.start(3000);
+    //publisher.publish("{\"msg\":\"hi\"}");
+    timer.start(1000);
 
-    QPubNubSubscriber subscriber("demo", "hello_world");
+    QPubNubSubscriber subscriber(&networkAccessManager, "demo", "hello_world");
     subscriber.subscribe();
+    subscriber.setCipherKey("test");
     QObject::connect(&subscriber, &QPubNubSubscriber::updateReceived, [&](const QJsonArray& messages) {
       auto first = messages.at(0);
-      if (first.isObject()) {
-        qDebug() << "Got update" << first.toObject();
-      }
+      qDebug() << "Got update" << first;
     });
     return a.exec();
 }
