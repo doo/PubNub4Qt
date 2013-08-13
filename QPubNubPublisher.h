@@ -46,27 +46,17 @@ public slots:
       QByteArray message(toByteArray(value));
 #ifdef Q_PUBNUB_CRYPT
       if (!m_cipherKey.isEmpty()) {
-        const unsigned char iv[] = "0123456789012345";
+        static const QByteArray iv("0123456789012345");
         CipherContext aes256;
-        if (!EVP_EncryptInit_ex(aes256, EVP_aes_256_cbc(), nullptr, (const unsigned char*)m_cipherKey.constData(), iv)) {
-          emit error("EncryptInit error");
+        int errorCode = 0;
+        auto encrypted(aes256.aesEncrypt(m_cipherKey, iv, message, errorCode));
+        if (errorCode != 0) {
+         char errorString[1024+1];
+          ERR_error_string_n(errorCode, errorString, 1024);
+          emit error(errorString);
           return;
         }
-
-        QByteArray cipher_data;
-        cipher_data.resize(message.length() + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
-        int cipherLen = 0;
-        if (!EVP_EncryptUpdate(aes256, (unsigned char *)cipher_data.data(), &cipherLen, (unsigned char *)message.constData(), message.length())) {
-          emit error("EncryptUpdate error");
-          return;
-        }
-        int finalCipherLen;
-        if (!EVP_EncryptFinal_ex(aes256, (unsigned char*)cipher_data.data() + cipherLen, &finalCipherLen)) {
-          emit error("EncryptFinal error");
-          return ;
-        }
-        cipher_data.resize(finalCipherLen);
-        message = QString("\"" + QString(cipher_data.toBase64()) + "\"").toLocal8Bit();
+        message = QString("\"" + QString(encrypted.toBase64()) + "\"").toLocal8Bit();
       }
 #endif // Q_PUBNUB_CRYPT
       auto reply = sendRequest(url(message));

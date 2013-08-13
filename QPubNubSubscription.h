@@ -107,31 +107,22 @@ private slots:
   
 #ifdef Q_PUBNUB_CRYPT
   bool decrypt(const QJsonArray& messages, QJsonArray& decryptedMessages) {
-    const unsigned char iv[] = "0123456789012345";
+    static const QByteArray iv("0123456789012345");
     CipherContext aes256;
         
     for (auto value : messages) {
-      if (!EVP_DecryptInit_ex(aes256, EVP_aes_256_cbc(), nullptr, (const unsigned char*)m_cipherKey.constData(), iv)) {
-        emit error("DecryptInit error");
-        return false;
-      }
       QByteArray data(QByteArray::fromBase64(value.toString().toLocal8Bit()));
-      QByteArray decodedData;
-      decodedData.resize(data.size() + EVP_CIPHER_block_size(EVP_aes_256_cbc()));
-      int messageLen = 0;
-      if (!EVP_DecryptUpdate(aes256, (unsigned char *)decodedData.data(), &messageLen, (unsigned char*)data.constData(), data.size())) {
-        error("DecryptUpdate error");
-        return false;
+      int errorCode = 0;
+      auto decrpytedMessage(aes256.aesDecrypt(m_cipherKey, iv, data, errorCode));
+      if (errorCode != 0) {
+        char errorString[1024+1];
+        ERR_error_string_n(errorCode, errorString, 1024);
+        emit error(errorString);
+        break;
       }
-      int finalMessageLen;
-      if (!EVP_DecryptFinal_ex(aes256, (unsigned char *)decodedData.data() + messageLen, &finalMessageLen)) {
-        error("DecryptFinal error");
-        return false;
-      }
-      decodedData.resize(finalMessageLen);
-      QJsonDocument doc(QJsonDocument::fromJson(decodedData));
+      QJsonDocument doc(QJsonDocument::fromJson(decrpytedMessage));
       if (doc.isNull() || doc.isEmpty()) {
-        const QString stringValue(decodedData);
+        const QString stringValue(decrpytedMessage);
         if (stringValue.isEmpty()) {
           decryptedMessages.append(QJsonValue());
         } else {
