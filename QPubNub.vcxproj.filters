@@ -31,9 +31,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\Debug\moc_QPubNubSubscription.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
@@ -52,6 +49,15 @@
     <ClCompile Include="GeneratedFiles\Release\moc_QPubNubBase.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
+    <ClCompile Include="QPubNubBase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QPubNubPublisher.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QPubNubSubscription.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="QPubNubSubscription.h">
@@ -68,5 +74,8 @@
     <ClInclude Include="CipherContext.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
