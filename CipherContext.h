@@ -3,7 +3,7 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-class CipherContext  {
+class CipherContext {
 public:
   CipherContext() {
     EVP_CIPHER_CTX_init(&context);

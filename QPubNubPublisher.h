@@ -3,11 +3,11 @@
 #include <QNetworkReply>
 #include <QDebug>
 #include <QTimer>
-#include <QCryptographicHash>
 #include <QJsonValue>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QCryptographicHash>
 
 #ifdef Q_PUBNUB_CRYPT
 #include "CipherContext.h"

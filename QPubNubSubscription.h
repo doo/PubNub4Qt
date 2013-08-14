@@ -10,21 +10,19 @@
 
 #ifdef Q_PUBNUB_CRYPT
 #include "CipherContext.h"
-#include <openssl/err.h>
 #include <QCryptographicHash>
 #endif // Q_PUBNUB_CRYPT
 
-
 #include "QPubNubBase.h"
 
-class QPubNubSubscriber : public QPubNubBase {
+class QPubNubSubscription : public QPubNubBase {
   Q_OBJECT
 signals:
   void connected();
   void updateReceived(const QJsonArray& messages);
   
 public:
-  QPubNubSubscriber(QNetworkAccessManager* networkAccessManager, const QString& subscribeKey, const QString& channel, const QString& uuid = QString(), QObject* parent = nullptr) : 
+  QPubNubSubscription(QNetworkAccessManager* networkAccessManager, const QString& subscribeKey, const QString& channel, const QString& uuid = QString(), QObject* parent = nullptr) : 
     QPubNubBase(networkAccessManager, parent), 
     m_timeToken("0"),
     m_uuid(uuid),
@@ -44,7 +42,7 @@ public slots:
       url += "?uuid=" + m_uuid;
     }
     QNetworkReply* reply = sendRequest(url);
-    connect(reply, &QNetworkReply::readyRead, this, &QPubNubSubscriber::onSubscribeReadyRead);
+    connect(reply, &QNetworkReply::readyRead, this, &QPubNubSubscription::onSubscribeReadyRead);
     // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
     connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
   }
@@ -58,7 +56,7 @@ private slots:
   }
 
   void onSubscribeReadyRead() {
-    auto reply = qobject_cast<QNetworkReply*>(sender());    
+    auto reply = qobject_cast<QNetworkReply*>(sender());
     if (handleResponse(reply)) {
       return;
     }
