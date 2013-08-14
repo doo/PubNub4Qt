@@ -1,6 +1,9 @@
 #include <QtCore/QCoreApplication>
 #include <QNetworkAccessManager>
 #include <QTimer>
+#include <QJSonDocument>
+#include <QJsonObject>
+#include <QDebug>
 
 #include "../QPubNubPublisher.h"
 #include "../QPubNubSubscription.h"

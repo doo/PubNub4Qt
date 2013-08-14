@@ -1,12 +1,7 @@
 #pragma once
 
 #include <QNetworkReply>
-#include <QJSonDocument>
 #include <QJSonArray>
-#include <QJSonValue>
-#include <QJSonObject>
-#include <QDebug>
-#include <QTimer>
 
 #ifdef Q_PUBNUB_CRYPT
 #include "CipherContext.h"

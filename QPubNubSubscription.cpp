@@ -1,5 +1,9 @@
 #include "QPubNubSubscription.h"
 
+#include <QTimer>
+#include <QJsonObject>
+#include <QJsonDocument>
+
 QPubNubSubscription::QPubNubSubscription(
   QNetworkAccessManager* networkAccessManager, 
   const QString& subscribeKey, 
