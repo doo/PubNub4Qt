@@ -16,8 +16,8 @@ QPubNub::QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent) :
   m_resumeOnReconnect(false) {
 }
 
-QNetworkReply* QPubNub::sendRequest(const QString& url) {
-  QNetworkRequest request(url);
+QNetworkReply* QPubNub::sendRequest(const QString& path) {
+  QNetworkRequest request(baseUrl() + path);
 #ifndef _DEBUG
   static bool originChecked = false;
   if (!originChecked) {
@@ -30,13 +30,15 @@ QNetworkReply* QPubNub::sendRequest(const QString& url) {
 #endif
   request.setHeader(QNetworkRequest::UserAgentHeader, "Qt/1.0");
   request.setRawHeader("V", "3.4");
+
+  // Only emit signal if there are connections currently.
   if (m_trace) {
     emit trace(request.url().toString());
   }
   return m_networkAccessManager->get(request);
 }
 
-bool QPubNub::handleResponse(QNetworkReply* reply) const {
+bool QPubNub::handleResponse(QNetworkReply* reply, QJsonArray& response) const {
   reply->deleteLater();
   if (reply->error() != QNetworkReply::NoError) {
     return true;
@@ -47,6 +49,19 @@ bool QPubNub::handleResponse(QNetworkReply* reply) const {
     emit error(reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString(), statusCode);
     return true;
   }
+
+  auto data(reply->readAll());
+  if (m_trace) {
+    emit trace(QString("Response for %1:\n%2").arg(reply->request().url().toString()).arg(data.constData()));
+  }    
+  const QJsonDocument doc(QJsonDocument::fromJson(data));
+  // Response must be an array and first element must also be an array
+  if (doc.isArray()) {
+    response = doc.array();
+  } else {
+    emit error("Response is not an JSON array", 0);
+    return true;
+  }
   return false;
 }
 
@@ -54,7 +69,7 @@ void QPubNub::time() {
   if (m_origin.isEmpty()) {
     return emit error("Origin not set", 0);
   }
-  auto reply = sendRequest(m_origin + "/time/0");
+  auto reply = sendRequest("/time/0");
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
   connect(reply, &QNetworkReply::finished, this, &QPubNub::onTimeFinished);
 }
@@ -67,17 +82,11 @@ void QPubNub::onError(QNetworkReply::NetworkError) {
 
 void QPubNub::onTimeFinished() {
   auto reply = qobject_cast<QNetworkReply*>(sender());
-  if (handleResponse(reply)) {
+  QJsonArray result;
+  if (handleResponse(reply, result)) {
     return;
   }
-  auto data(reply->readAll());
-  const QJsonDocument doc(QJsonDocument::fromJson(data));
-  // Response must be an array and first element must also be an array
-  if (doc.isArray()) {
-    emit timeResponse(doc.array()[0].toDouble());
-  } else {
-    emit error("Response is not an JSON array", 0);
-  }
+  emit timeResponse(result[0].toDouble());
 }
 
 void QPubNub::resetOrigin() {
@@ -100,27 +109,12 @@ QByteArray QPubNub::signature(const QByteArray& message, const QString& channel)
   return hash.result().toHex();
 }
 
-static QByteArray toByteArray(const QJsonValue& value) {
-  switch (value.type()) {
-  case QJsonValue::String:
-    return value.toString().toLocal8Bit();
-  case QJsonValue::Array:
-    return QJsonDocument(value.toArray()).toJson(QJsonDocument::Compact);
-  case QJsonValue::Object:
-    return QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact);
-  case QJsonValue::Double:
-    return QString::number(value.toDouble()).toLocal8Bit();
-  }
-  return QByteArray();
-}
-
 QString QPubNub::baseUrl() const {
   return QString("http%1://%2").arg(m_ssl ? "s" : "").arg(m_origin);
 }
 
 QString QPubNub::publishUrl(const QByteArray& message, const QString& channel) const {
-  return QString("%1/publish/%2/%3/%4/%5/0/%6")
-    .arg(baseUrl())
+  return QString("/publish/%1/%2/%3/%4/0/%5")
     .arg(m_publishKey.constData())
     .arg(m_subscribeKey.constData())
     .arg(m_secretKey.isEmpty() ? "0" : signature(message, channel).constData())
@@ -153,102 +147,100 @@ void QPubNub::publish(const QString& channel, const QJsonValue& value) {
   auto reply = sendRequest(publishUrl("\""+message+"\"", channel));
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
-  connect(reply, &QNetworkReply::readyRead, this, &QPubNub::publishFinished);
+  connect(reply, &QNetworkReply::finished, this, &QPubNub::publishFinished);
 }
 
 void QPubNub::publishFinished() {
   auto reply = qobject_cast<QNetworkReply*>(sender());
-  if (handleResponse(reply)) {
+  QJsonArray response;
+  if (handleResponse(reply, response)) {
     return;
   }
-  auto data(reply->readAll());
-  const QJsonDocument doc(QJsonDocument::fromJson(data));
-  // Response must be an array and first element must also be an array
-  if (doc.isArray()) {
-    const QJsonArray array(doc.array());
-    if (array.size() >= 2) {
-      const QJsonValue statusCode(array[0]);
-      if ((int)statusCode.toDouble() == 0) {
-        emit error(array[1].toString(), 0);
-      } else {
-        emit published(array[2].toString());
-      }
+  if (response.size() >= 2) {
+    const QJsonValue statusCode(response[0]);
+    if ((int)statusCode.toDouble() == 0) {
+      emit error(response[1].toString(), 0);
     } else {
-      emit error("Response array is too small", 0);
+      emit published(response[2].toString());
     }
   } else {
-    emit error("Response is not an JSON array", 0);
+    emit error("Response array is too small", 0);
   }
 }
 
 QString QPubNub::subscribeUrl(const QString& channel) const {
-  return QString("%1/subscribe/%2/%3/0/").arg(baseUrl()).arg(m_subscribeKey.constData()).arg(channel);
+  return QString("/subscribe/%1/%2/0/").arg(m_subscribeKey.constData()).arg(channel);
 }
 
 void QPubNub::subscribe(const QString& channel) {
+  if (m_channels.contains(channel)) {
+    return;
+  }
   m_channels.insert(channel);
-  QString url(subscribeUrl(channel) + m_timeToken);
+  if (m_channelUrlPart.isEmpty()) {
+    m_channelUrlPart = channel;
+  } else {
+    m_channelUrlPart += "," + channel;
+  }
+
+  subscribe();
+}
+
+void QPubNub::subscribe() {
+  QString url(subscribeUrl(m_channelUrlPart) + m_timeToken);
   if (!m_uuid.isNull()) {
     url += "?uuid=" + m_uuid;
   }
   QNetworkReply* reply = sendRequest(url);
-  connect(reply, &QNetworkReply::readyRead, this, &QPubNub::onSubscribeReadyRead);
+  connect(reply, &QNetworkReply::finished, this, &QPubNub::onSubscribeReadyRead);
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
 }
 
 void QPubNub::onSubscribeReadyRead() {
   auto reply = qobject_cast<QNetworkReply*>(sender());
-  if (handleResponse(reply)) {
+  QJsonArray response;
+  if (handleResponse(reply, response)) {
     return;
   }
-
-  auto data(reply->readAll());
-  //qDebug() << data.data();
-  const QJsonDocument doc(QJsonDocument::fromJson(data));
-  // Response must be an array and first element must also be an array
-  if (doc.isArray()) {
-    const QJsonArray array(doc.array());
-    auto firstElement(array.at(0));
-    if (firstElement.isArray()) {
-      auto messages = firstElement.toArray();
-      auto timeTokenElement = array.at(1);
-      if (timeTokenElement.isString()) {
-        m_timeToken = timeTokenElement.toString();
-        // TODO:: Extract channels
-        auto channelListString = array.at(2);
-        QStringList channels;
-        if (channelListString.isString()) {
-          channels = channelListString.toString().split(',');
-        }
-        if (!messages.isEmpty()) {
+  auto firstElement(response.at(0));
+  if (!firstElement.isArray()) {
+    emit error("First element of response is not an JSON array", 0);
+    subscribe();
+  }
+  
+  auto timeTokenElement = response.at(1);
+  if (!timeTokenElement.isString()) {
+    emit error("Second element of response is not a string", 0);
+    subscribe();
+  }
+  m_timeToken = timeTokenElement.toString();
+  auto channelListString = response.at(2);
+  QStringList channels;
+  if (channelListString.isString()) {
+    channels = channelListString.toString().split(',');
+  } else {
+    channels << m_channelUrlPart;
+  }
+  auto messages = firstElement.toArray();
+  if (messages.isEmpty()) {
+    emit connected();
+  } else {
 #ifdef Q_PUBNUB_CRYPT
-          if (m_cipherKey.isEmpty()) {
-            for (int i=0,len=messages.size();i<len;++i) {
-              emit message(messages[i], m_timeToken, channels[i]);
-            }
-          } else {
-            decrypt(messages, channels);
-          }
-#else
-          for (int i=0,len=messages.size();i<len;++i) {
-            emit message(messages[i], m_timeToken, channels[i]);
-          }
-#endif // Q_PUBNUB_CRYPT
-        } else {
-          emit connected();
-        }
-      } else {
-        emit error("Second element of response is not a string", 0);
+    if (m_cipherKey.isEmpty()) {
+      for (int i=0,len=messages.size();i<len;++i) {
+        emit message(messages[i], m_timeToken, channels[i]);
       }
     } else {
-      emit error("First element of response is not an JSON array", 0);
+      decrypt(messages, channels);
     }
-  } else {
-    emit error("Response is not an JSON array", 0);
+  #else
+    for (int i=0,len=messages.size();i<len;++i) {
+      emit message(messages[i], m_timeToken, channels[i]);
+    }
+#endif // Q_PUBNUB_CRYPT
   }
-    
-  subscribe(m_channels.values()[0]);
+  subscribe();
 }
   
 #ifdef Q_PUBNUB_CRYPT

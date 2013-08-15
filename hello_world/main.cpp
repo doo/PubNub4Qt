@@ -13,20 +13,21 @@ int main(int argc, char *argv[]) {
     QNetworkAccessManager networkAccessManager;
 
     QPubNub pubnub(&networkAccessManager);
+    pubnub.connect(&pubnub, &QPubNub::trace, [](QString message) {
+      qDebug() << "Trace:" << qPrintable(message);
+    });
+    pubnub.time();
     pubnub.setPublishKey("demo");
     pubnub.setSubscribeKey("demo");
     pubnub.connect(&pubnub, &QPubNub::error, [](QString message, int code) {
-      qDebug() << "error:" << message;
+      qDebug() << "error:" << qPrintable(message);
     });
     pubnub.setCipherKey("enigma");
     pubnub.publish("qwertz", QJsonValue(QString("test")));
-    pubnub.subscribe("qwertz,qwertz2");
+    pubnub.subscribe("qwertz");
     pubnub.connect(&pubnub, &QPubNub::message, [](QJsonValue value, QString timeToken, QString channel) {
-      qDebug() << "[" << channel << "]:" << value;
+      qDebug().nospace() << "[" << qPrintable(channel) << "]:" << value;
     });
 
-    pubnub.connect(&pubnub, &QPubNub::trace, [](QString message) {
-      qDebug() << "Trace:" << message;
-    });
     return a.exec();
 }

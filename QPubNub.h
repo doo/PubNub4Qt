@@ -17,6 +17,20 @@
 
 #include "CipherContext.h"
 
+static QByteArray toByteArray(const QJsonValue& value) {
+  switch (value.type()) {
+  case QJsonValue::String: {
+    auto jsonString("\"" + value.toString() + "\"");
+    return jsonString.toUtf8();
+    }
+  case QJsonValue::Array:
+    return QJsonDocument(value.toArray()).toJson(QJsonDocument::Compact);
+  case QJsonValue::Object:
+    return QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact);
+  }
+  return QByteArray();
+}
+
 class QPubNubCrypt {
 public:
   QPubNubCrypt(const QByteArray& key) : m_key(QCryptographicHash::hash(key, QCryptographicHash::Sha256).left(32).toHex()) {
@@ -29,13 +43,9 @@ public:
   QByteArray encrypt(const QJsonValue& value, int& error) {
     switch (value.type()) {
     case QJsonValue::Array:
-      return aesEncrypt(QJsonDocument(value.toArray()).toJson(QJsonDocument::Compact), error);
     case QJsonValue::Object:
-      return aesEncrypt(QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact), error);
-    case QJsonValue::String: {
-      auto jsonString("\"" + value.toString() + "\"");
-      return aesEncrypt(jsonString.toUtf8(), error);
-      }
+    case QJsonValue::String:
+      return aesEncrypt(toByteArray(value), error);
     }
     Q_ASSERT_X(false, "encrypt", "Only array, object and string values allowed");
     error = -1;
@@ -101,7 +111,7 @@ signals:
   void message(QJsonValue value, QString timeToke, QString channel);
   void timeResponse(quint64 timeToken);
   void published(QString timeStamp);
-  void trace(QString message);
+  void trace(QString message) const;
 public:
   QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent = nullptr);
 
@@ -123,9 +133,9 @@ public:
   void setSubscribeKey(const QByteArray& value) { m_subscribeKey = value; }
   
 protected:
-  QNetworkReply* sendRequest(const QString& url);
+  QNetworkReply* sendRequest(const QString& path);
 
-  bool handleResponse(QNetworkReply* reply) const;
+  bool handleResponse(QNetworkReply* reply, QJsonArray& response) const;
 
   void resetOrigin();
 
@@ -144,6 +154,7 @@ private slots:
   void onError(QNetworkReply::NetworkError);
 
   bool decrypt(const QJsonArray& messages, const QStringList& channels);
+  void subscribe();
 
 private:
   QNetworkAccessManager* m_networkAccessManager;
@@ -157,5 +168,6 @@ private:
   QString m_timeToken;
   QString m_uuid;
   QSet<QString> m_channels;
+  QString m_channelUrlPart;
   int m_trace;
 };
