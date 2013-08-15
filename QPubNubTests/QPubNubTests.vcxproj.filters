@@ -20,38 +20,30 @@
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
     <Filter Include="Generated Files\Debug">
-      <UniqueIdentifier>{dedfd23f-ec40-4c13-9715-43bee36b8c4f}</UniqueIdentifier>
+      <UniqueIdentifier>{26daf5ed-280e-4339-8d00-dd76c59ddf1d}</UniqueIdentifier>
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
     <Filter Include="Generated Files\Release">
-      <UniqueIdentifier>{1fe0f26f-5621-478c-94f7-04685fc146c9}</UniqueIdentifier>
+      <UniqueIdentifier>{c45f67dc-b26a-4959-8de0-fa64673d728d}</UniqueIdentifier>
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GeneratedFiles\Debug\moc_QPubNub.cpp">
+    <ClCompile Include="QPubNubTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_QPubNubTests.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="GeneratedFiles\Release\moc_QPubNub.cpp">
+    <ClCompile Include="GeneratedFiles\Release\moc_QPubNubTests.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="QPubNub.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="QPubNub.h">
+    <CustomBuild Include="QPubNubTests.h">
       <Filter>Source Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CipherContext.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="README.md" />
   </ItemGroup>
 </Project>

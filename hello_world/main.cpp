@@ -5,32 +5,28 @@
 #include <QJsonObject>
 #include <QDebug>
 
-#include "../QPubNubPublisher.h"
-#include "../QPubNubSubscription.h"
+#include "../QPubNub.h"
 
 int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
 
     QNetworkAccessManager networkAccessManager;
 
-    QPubNubPublisher publisher(&networkAccessManager, "demo", "demo", "hello_world");
-    publisher.signMessages("test");
-#ifdef Q_PUBNUB_CRYPT
-    publisher.encryptMessages("test");
-#endif
-    QTimer timer;
-    timer.connect(&timer, &QTimer::timeout, [&] {
-      publisher.publish(QJsonDocument::fromJson("{\"msg\":\"hi\"}").object());
+    QPubNub pubnub(&networkAccessManager);
+    pubnub.setPublishKey("demo");
+    pubnub.setSubscribeKey("demo");
+    pubnub.connect(&pubnub, &QPubNub::error, [](QString message, int code) {
+      qDebug() << "error:" << message;
     });
-    timer.start(5000);
+    pubnub.setCipherKey("enigma");
+    pubnub.publish("qwertz", QJsonValue(QString("test")));
+    pubnub.subscribe("qwertz,qwertz2");
+    pubnub.connect(&pubnub, &QPubNub::message, [](QJsonValue value, QString timeToken, QString channel) {
+      qDebug() << "[" << channel << "]:" << value;
+    });
 
-    QPubNubSubscription subscription(&networkAccessManager, "demo", "hello_world");
-#ifdef Q_PUBNUB_CRYPT
-    subscription.decryptMessages("test");
-#endif
-    subscription.subscribe();
-    QObject::connect(&subscription, &QPubNubSubscription::updateReceived, [&](const QJsonArray& messages) {
-      qDebug() << "Got update" << messages;
+    pubnub.connect(&pubnub, &QPubNub::trace, [](QString message) {
+      qDebug() << "Trace:" << message;
     });
     return a.exec();
 }
