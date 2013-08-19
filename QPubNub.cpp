@@ -86,7 +86,7 @@ void QPubNub::onTimeFinished() {
   if (handleResponse(reply, result)) {
     return;
   }
-  emit timeResponse(result[0].toDouble());
+  emit timeResponse((quint64)(result[0].toDouble()));
 }
 
 void QPubNub::resetOrigin() {
