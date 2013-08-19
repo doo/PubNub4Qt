@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QPubNub", "QPubNub.vcxproj", "{B12702AD-ABFB-343A-A199-8E24837244A3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_world", "hello_world\hello_world.vcxproj", "{0A277C4F-AA78-4353-B59A-BD38F3472EFF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_world", "..\hello_world\hello_world.vcxproj", "{0A277C4F-AA78-4353-B59A-BD38F3472EFF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QPubNubTests", "QPubNubTests\QPubNubTests.vcxproj", "{909570BE-F380-4462-B7CF-5BB8DA31069E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QPubNubTests", "..\tests\QPubNubTests.vcxproj", "{909570BE-F380-4462-B7CF-5BB8DA31069E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
