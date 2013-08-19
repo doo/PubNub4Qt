@@ -7,3 +7,9 @@ Encrypting support is enabled by defining ```Q_PUBNUB_CRYPT``` and calling ```QP
 Decrypting messages is enabled by calling ```QPubNubSubscriber::decryptMessages``` with the same cipher key respectivly.
 
 Currently _MSVC2012 only_. Qt project files welcomed as pull-request.
+
+
+License
+-------
+
+MIT License
