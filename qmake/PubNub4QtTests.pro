@@ -12,7 +12,7 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 
-HEADERS   = ../../tests/QPubNubTests.h
-SOURCES   = ../../tests/QPubNubTests.cpp
+HEADERS   = ../tests/QPubNubTests.h
+SOURCES   = ../tests/QPubNubTests.cpp
 
-include(../common.pri)
+include(common.pri)
