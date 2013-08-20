@@ -1,3 +1,5 @@
+# PubNub4QtTests project file
+
 QT       += testlib network
 QT       -= gui
 
