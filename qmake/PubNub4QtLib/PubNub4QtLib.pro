@@ -7,8 +7,8 @@ TEMPLATE  = lib
 
 DEFINES   += Q_PUBNUB_CRYPT
 
-HEADERS   = ../../QPubNub.h
-SOURCES   = ../../QPubNub.cpp
+HEADERS   += ../../QPubNub.h
+SOURCES   += ../../QPubNub.cpp
 
 CONFIG += staticlib
 CONFIG += dll

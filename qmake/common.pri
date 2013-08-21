@@ -9,3 +9,9 @@ contains(QMAKE_TARGET.arch, x86):{
 }
 
 LIBS      += -llibeay32
+
+CONFIG(debug, debug|release) {
+    DESTDIR = debug
+} else {
+    DESTDIR = release
+}
