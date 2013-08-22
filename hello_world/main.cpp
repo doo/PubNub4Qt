@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     pubnub.time();
     pubnub.setPublishKey("demo");
     pubnub.setSubscribeKey("demo");
-    pubnub.connect(&pubnub, &QPubNub::error, [](QString message, int code) {
+    pubnub.connect(&pubnub, &QPubNub::error, [](QString message, int /* code */) {
       qDebug() << "error:" << qPrintable(message);
     });
     pubnub.setCipherKey("enigma");
