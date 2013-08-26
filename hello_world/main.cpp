@@ -38,8 +38,8 @@ int main(int argc, char *argv[]) {
     pubnub.connect(&pubnub, &QPubNub::message, [](QJsonValue value, QString timeToken, QString channel) {
       qDebug().nospace() << "[" << qPrintable(channel) << "]:" << value;
     });
-    pubnub.subscribe("hello_world");
-    pubnub.publish("hello_world", QJsonValue(QString("Hello from Qt World")));
+    pubnub.subscribe("hello_qtworld");
+    pubnub.publish("hello_qtworld", QJsonValue(QString("Hello from Qt World")));
 
     return a.exec();
 }
