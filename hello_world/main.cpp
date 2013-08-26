@@ -7,27 +7,39 @@
 
 #include "../QPubNub.h"
 
+/**
+Once you run this program, go to the PubNub console
+http://www.pubnub.com/console
+
+connect to the "hello_world" channel with the cipherkey set to "enigma" and "demo/demo" as publish/subscribe keys.
+
+Now when you send the message "Hello from Dev Console" (including the quotation marks, as it has to be a valid JSON string in the console)
+you should see this printed on the applications console:
+[hello_world]:QJsonValue(string, "Hello from Dev Console")
+*/
 int main(int argc, char *argv[]) {
     QCoreApplication a(argc, argv);
 
     QNetworkAccessManager networkAccessManager;
 
     QPubNub pubnub(&networkAccessManager);
-    pubnub.connect(&pubnub, &QPubNub::trace, [](QString message) {
-      qDebug() << "Trace:" << qPrintable(message);
-    });
+    if (a.arguments().contains("-trace")) {
+      pubnub.connect(&pubnub, &QPubNub::trace, [](QString message) {
+        qDebug() << "Trace:" << qPrintable(message);
+      });
+    }
     pubnub.time();
     pubnub.setPublishKey("demo");
     pubnub.setSubscribeKey("demo");
+    pubnub.setCipherKey("enigma");
     pubnub.connect(&pubnub, &QPubNub::error, [](QString message, int /* code */) {
       qDebug() << "error:" << qPrintable(message);
     });
-    pubnub.setCipherKey("enigma");
-    pubnub.publish("qwertz", QJsonValue(QString("test")));
-    pubnub.subscribe("qwertz");
     pubnub.connect(&pubnub, &QPubNub::message, [](QJsonValue value, QString timeToken, QString channel) {
       qDebug().nospace() << "[" << qPrintable(channel) << "]:" << value;
     });
+    pubnub.subscribe("hello_world");
+    pubnub.publish("hello_world", QJsonValue(QString("Hello from Qt World")));
 
     return a.exec();
 }
