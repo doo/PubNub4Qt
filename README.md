@@ -3,8 +3,7 @@ PubNub4Qt
 
 Qt based PubNub implementation for publishing and subscriptions.
 
-Currently _MSVC2012 only_. Qt project files welcomed as pull-request.
-
+Check out [the example](https://github.com/doo/PubNub4Qt/blob/master/hello_world/main.cpp) on how to use it.
 
 License
 -------
