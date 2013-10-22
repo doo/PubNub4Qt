@@ -3,6 +3,7 @@
 #include <QNetworkRequest>
 #include <QDebug>
 #include <QMetaMethod>
+#include <QTimer>
 
 static const QString defaultOrigin("qt.pubnub.com");
 
@@ -183,7 +184,9 @@ void QPubNub::subscribe(const QString& channel) {
     m_channelUrlPart += "," + channel;
   }
 
-  subscribe();
+  // subscribe uses the QNetworkAccessManager so make sure it runs on the correct thread
+  // by invoking it through the Qt message loop
+  QTimer::singleShot(0, this, SLOT(subscribe()));
 }
 
 void QPubNub::subscribe() {
