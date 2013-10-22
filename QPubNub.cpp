@@ -176,14 +176,20 @@ void QPubNub::subscribe(const QString& channel) {
   if (m_channels.contains(channel)) {
     return;
   }
-  m_channels.insert(channel);
+  m_channels.append(channel);
   if (m_channelUrlPart.isEmpty()) {
     m_channelUrlPart = channel;
   } else {
-    m_channelUrlPart += "," + channel;
+    m_channelUrlPart = m_channels.join(",");
   }
-
   subscribe();
+}
+
+void QPubNub::unsubscribe(const QString& channel) {
+  if (m_channels.removeOne(channel)) {
+    m_channelUrlPart = m_channels.join(",");
+    subscribe();
+  }
 }
 
 void QPubNub::subscribe() {

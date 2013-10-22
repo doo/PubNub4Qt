@@ -118,6 +118,8 @@ public:
   void time();
   void publish(const QString& channel, const QJsonValue& value);
   void subscribe(const QString& channel);
+  void unsubscribe(const QString& channel);
+
   /*void here_now();
   void presence();
   void history();
@@ -167,7 +169,7 @@ private:
   bool m_ssl;
   QString m_timeToken;
   QString m_uuid;
-  QSet<QString> m_channels;
+  QStringList m_channels;
   QString m_channelUrlPart;
   int m_trace;
 };
