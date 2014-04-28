@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QByteArray>
+
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
@@ -46,7 +48,7 @@ protected:
     const EVP_CIPHER *cipher, const QByteArray& cipherKey, const QByteArray& iv, const QByteArray& sourceData,
     int& error) {
     error = 0;
-    if (!init(&context, cipher, nullptr, (const unsigned char*)cipherKey.constData(), (const unsigned char*)iv.constData())) {
+    if (!init(&context, cipher, 0, (const unsigned char*)cipherKey.constData(), (const unsigned char*)iv.constData())) {
       return emptyResult(error);
     }
 

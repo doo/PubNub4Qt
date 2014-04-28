@@ -16,21 +16,24 @@
 #include <openssl/err.h>
 
 #include "CipherContext.h"
+#endif
 
 static QByteArray toByteArray(const QJsonValue& value) {
   switch (value.type()) {
   case QJsonValue::String: {
-    auto jsonString("\"" + value.toString() + "\"");
+    QString jsonString("\"" + value.toString() + "\"");
     return jsonString.toUtf8();
     }
   case QJsonValue::Array:
     return QJsonDocument(value.toArray()).toJson(QJsonDocument::Compact);
   case QJsonValue::Object:
     return QJsonDocument(value.toObject()).toJson(QJsonDocument::Compact);
+  default:
+    return QByteArray();
   }
-  return QByteArray();
 }
 
+#ifdef Q_PUBNUB_CRYPT
 class QPubNubCrypt {
 public:
   QPubNubCrypt(const QByteArray& key) : m_key(QCryptographicHash::hash(key, QCryptographicHash::Sha256).left(32).toHex()) {
@@ -53,7 +56,7 @@ public:
   }
 
   QJsonValue decrypt(const QByteArray& source, int& error) {
-    auto decrypted(m_cipherContext.aesDecrypt(m_key, iv(), QByteArray::fromBase64(source), error));
+    QByteArray decrypted(m_cipherContext.aesDecrypt(m_key, iv(), QByteArray::fromBase64(source), error));
     QJsonDocument doc(QJsonDocument::fromJson(decrypted));
     if (doc.isArray()) {
       return doc.array();
@@ -113,7 +116,7 @@ signals:
   void published(QString timeStamp);
   void trace(QString message) const;
 public:
-  QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent = nullptr);
+  QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent = 0);
 
   void time();
   void publish(const QString& channel, const QJsonValue& value);
@@ -153,8 +156,11 @@ private slots:
   void onSubscribeReadyRead();
   void onError(QNetworkReply::NetworkError);
 
-  bool decrypt(const QJsonArray& messages, const QStringList& channels);
   void subscribe();
+
+#ifdef Q_PUBNUB_CRYPT
+  bool decrypt(const QJsonArray& messages, const QStringList& channels);
+#endif
 
 private:
   QNetworkAccessManager* m_networkAccessManager;
