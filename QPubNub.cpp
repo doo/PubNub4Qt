@@ -3,17 +3,19 @@
 #include <QNetworkRequest>
 #include <QDebug>
 #include <QMetaMethod>
+#include <QCryptographicHash>
 
 static const QString defaultOrigin("qt.pubnub.com");
 
 QPubNub::QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent) : 
   QObject(parent), 
-  m_trace(0),
   m_networkAccessManager(networkAccessManager),
   m_origin(defaultOrigin),
+  m_resumeOnReconnect(false),
   m_ssl(true),
   m_timeToken("0"),
-  m_resumeOnReconnect(false) {
+  m_trace(0)
+{
 }
 
 QNetworkReply* QPubNub::sendRequest(const QString& path) {
@@ -50,7 +52,7 @@ bool QPubNub::handleResponse(QNetworkReply* reply, QJsonArray& response) const {
     return true;
   }
 
-  auto data(reply->readAll());
+  QByteArray data(reply->readAll());
   if (m_trace) {
     emit trace(QString("Response for %1:\n%2").arg(reply->request().url().toString()).arg(data.constData()));
   }    
@@ -67,21 +69,22 @@ bool QPubNub::handleResponse(QNetworkReply* reply, QJsonArray& response) const {
 
 void QPubNub::time() {
   if (m_origin.isEmpty()) {
-    return emit error("Origin not set", 0);
+    emit error("Origin not set", 0);
+    return;
   }
-  auto reply = sendRequest("/time/0");
+  QNetworkReply * reply = sendRequest("/time/0");
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
   connect(reply, &QNetworkReply::finished, this, &QPubNub::onTimeFinished);
 }
 
 void QPubNub::onError(QNetworkReply::NetworkError) {
-  auto reply = qobject_cast<QNetworkReply*>(sender());
+  QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
   reply->deleteLater();
   emit error(reply->errorString(), 0);
 }
 
 void QPubNub::onTimeFinished() {
-  auto reply = qobject_cast<QNetworkReply*>(sender());
+  QNetworkReply * reply = qobject_cast<QNetworkReply*>(sender());
   QJsonArray result;
   if (handleResponse(reply, result)) {
     return;
@@ -124,7 +127,8 @@ QString QPubNub::publishUrl(const QByteArray& message, const QString& channel) c
 
 void QPubNub::publish(const QString& channel, const QJsonValue& value) {
   if (m_publishKey.isEmpty()) {
-    return emit error("No publish key set", 0);
+    emit error("No publish key set", 0);
+    return ;
   }
 
   QByteArray message;
@@ -142,16 +146,18 @@ void QPubNub::publish(const QString& channel, const QJsonValue& value) {
   } else {
 #endif // Q_PUBNUB_CRYPT
     message = toByteArray(value);
+#ifdef Q_PUBNUB_CRYPT
   }
+#endif
 
-  auto reply = sendRequest(publishUrl("\""+message+"\"", channel));
+  QNetworkReply * reply = sendRequest(publishUrl("\""+message+"\"", channel));
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
   connect(reply, &QNetworkReply::finished, this, &QPubNub::publishFinished);
 }
 
 void QPubNub::publishFinished() {
-  auto reply = qobject_cast<QNetworkReply*>(sender());
+  QNetworkReply * reply = qobject_cast<QNetworkReply*>(sender());
   QJsonArray response;
   if (handleResponse(reply, response)) {
     return;
@@ -200,31 +206,31 @@ void QPubNub::subscribe() {
 }
 
 void QPubNub::onSubscribeReadyRead() {
-  auto reply = qobject_cast<QNetworkReply*>(sender());
+  QNetworkReply * reply = qobject_cast<QNetworkReply*>(sender());
   QJsonArray response;
   if (handleResponse(reply, response)) {
     return;
   }
-  auto firstElement(response.at(0));
+  QJsonValue firstElement(response.at(0));
   if (!firstElement.isArray()) {
     emit error("First element of response is not an JSON array", 0);
     subscribe();
   }
   
-  auto timeTokenElement = response.at(1);
+  QJsonValue timeTokenElement = response.at(1);
   if (!timeTokenElement.isString()) {
     emit error("Second element of response is not a string", 0);
     subscribe();
   }
   m_timeToken = timeTokenElement.toString();
-  auto channelListString = response.at(2);
+  QJsonValue channelListString = response.at(2);
   QStringList channels;
   if (channelListString.isString()) {
     channels = channelListString.toString().split(',');
   } else {
     channels << m_channelUrlPart;
   }
-  auto messages = firstElement.toArray();
+  QJsonArray messages = firstElement.toArray();
   if (messages.isEmpty()) {
     emit connected();
   } else {
@@ -250,7 +256,7 @@ bool QPubNub::decrypt(const QJsonArray& messages, const QStringList& channels) {
   QPubNubCrypt crypt(m_cipherKey);
   for (int i=0,len=messages.size();i<len;++i) {
     int errorCode = 0;
-    auto value(crypt.decrypt(messages[i].toString().toLocal8Bit(), errorCode));
+    QJsonValue value(crypt.decrypt(messages[i].toString().toLocal8Bit(), errorCode));
     if (errorCode != 0) {
       char errorString[1024+1];
       ERR_error_string_n(errorCode, errorString, 1024);
