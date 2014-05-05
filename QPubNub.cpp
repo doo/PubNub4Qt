@@ -132,6 +132,7 @@ void QPubNub::publish(const QString& channel, const QJsonValue& value) {
   }
 
   QByteArray message;
+  QString publishURL;
 #ifdef Q_PUBNUB_CRYPT
   if (!m_cipherKey.isEmpty()) {
     QPubNubCrypt crypt(m_cipherKey);
@@ -143,14 +144,16 @@ void QPubNub::publish(const QString& channel, const QJsonValue& value) {
       emit error(errorString, errorCode);
       return;
     }
+    publishURL = publishUrl("\""+message+"\"", channel);
   } else {
 #endif // Q_PUBNUB_CRYPT
     message = toByteArray(value);
+    publishURL = publishUrl(message, channel);
 #ifdef Q_PUBNUB_CRYPT
   }
 #endif
 
-  QNetworkReply * reply = sendRequest(publishUrl("\""+message+"\"", channel));
+  QNetworkReply * reply = sendRequest(publishURL);
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
   connect(reply, &QNetworkReply::finished, this, &QPubNub::publishFinished);
