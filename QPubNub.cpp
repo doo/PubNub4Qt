@@ -225,12 +225,16 @@ void QPubNub::onSubscribeReadyRead() {
   m_timeToken = timeTokenElement.toString();
   QJsonValue channelListString = response.at(2);
   QStringList channels;
+  QJsonArray messages = firstElement.toArray();
   if (channelListString.isString()) {
     channels = channelListString.toString().split(',');
   } else {
-    channels << m_channelUrlPart;
+    int len = messages.isEmpty() ? 0 : messages.size();
+    for (int i = 0; i < len; i++)
+    {
+        channels << m_channelUrlPart;
+    }
   }
-  QJsonArray messages = firstElement.toArray();
   if (messages.isEmpty()) {
     emit connected();
   } else {
