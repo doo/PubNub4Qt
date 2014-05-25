@@ -14,7 +14,8 @@ QPubNub::QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent) :
   m_resumeOnReconnect(false),
   m_ssl(true),
   m_timeToken("0"),
-  m_trace(0)
+  m_trace(0),
+  m_subsribeInvoked(false)
 {
 }
 
@@ -190,8 +191,15 @@ void QPubNub::subscribe(const QString& channel) {
   }
 
   // subscribe uses the QNetworkAccessManager so make sure it runs on the correct thread
-  // by invoking it through the Qt message loop
-  QMetaObject::invokeMethod(this, "subscribe", Qt::QueuedConnection);
+  // by invoking it through the Qt message loop.
+  // Because the subscribe for multiple channels is done in one get request, for which
+  // the data is stored as class members, we have to make sure this method is queued
+  // for execution only once.
+  if (!m_subsribeInvoked)
+  {
+    QMetaObject::invokeMethod(this, "subscribe", Qt::QueuedConnection);
+    m_subsribeInvoked = true;
+  }
 }
 
 void QPubNub::subscribe() {
@@ -203,6 +211,7 @@ void QPubNub::subscribe() {
   connect(reply, &QNetworkReply::finished, this, &QPubNub::onSubscribeReadyRead);
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
+  m_subsribeInvoked = false;
 }
 
 void QPubNub::onSubscribeReadyRead() {
