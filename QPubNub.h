@@ -176,4 +176,5 @@ private:
   QSet<QString> m_channels;
   QString m_channelUrlPart;
   int m_trace;
+  QNetworkReply * m_currentSubscribeReply;
 };
