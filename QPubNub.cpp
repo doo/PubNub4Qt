@@ -5,6 +5,9 @@
 #include <QMetaMethod>
 #include <QCryptographicHash>
 
+// See here for REST API:
+// http://www.pubnub.com/http-rest-push-api/
+
 static const QString defaultOrigin("qt.pubnub.com");
 
 QPubNub::QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent) : 
@@ -14,7 +17,8 @@ QPubNub::QPubNub(QNetworkAccessManager* networkAccessManager, QObject* parent) :
   m_resumeOnReconnect(false),
   m_ssl(true),
   m_timeToken("0"),
-  m_trace(0)
+  m_trace(0),
+  m_currentSubscribeReply(0)
 {
 }
 
@@ -199,7 +203,21 @@ void QPubNub::subscribe() {
   if (!m_uuid.isNull()) {
     url += "?uuid=" + m_uuid;
   }
+
+  // Because each subscribe makes a GET request that doesn't finish until there is data, there can be pending
+  // network requests we have to abort, because otherwise multiple subscribes with the same timetoken will be
+  // done (because any new subscribes that are done before any existing ones are finished, use m_timeToken and
+  // also erronously assume m_channelUrlPart, which may have changed since the first subscribe, is what
+  // channel messages arrive on).
+  if (m_currentSubscribeReply)
+  {
+      m_currentSubscribeReply->blockSignals(true);
+      m_currentSubscribeReply->abort();
+      m_currentSubscribeReply->deleteLater();
+  }
+
   QNetworkReply* reply = sendRequest(url);
+  m_currentSubscribeReply = reply;
   connect(reply, &QNetworkReply::finished, this, &QPubNub::onSubscribeReadyRead);
   // This can't be connected using the new syntax, cause the signal and error property have the same name "error"
   connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(onError(QNetworkReply::NetworkError)));
@@ -207,6 +225,8 @@ void QPubNub::subscribe() {
 
 void QPubNub::onSubscribeReadyRead() {
   QNetworkReply * reply = qobject_cast<QNetworkReply*>(sender());
+  if (reply == m_currentSubscribeReply)
+      m_currentSubscribeReply = 0;
   QJsonArray response;
   if (handleResponse(reply, response)) {
     return;
