@@ -108,7 +108,7 @@ class QPubNub : public QObject {
   Q_PROPERTY(bool resumeOnReconnect MEMBER m_resumeOnReconnect)
   Q_PROPERTY(QString origin MEMBER m_origin RESET resetOrigin)
   Q_PROPERTY(bool ssl MEMBER m_ssl)
-signals:
+Q_SIGNALS:
   void connected();
   void error(QString message, const int code) const;
   void message(QJsonValue value, QString timeToke, QString channel);
@@ -150,7 +150,7 @@ protected:
   void connectNotify(const QMetaMethod& signal);
   void disconnectNotify(const QMetaMethod& signal);
 
-private slots:
+private Q_SLOTS:
   void onTimeFinished();
   void publishFinished();
   void onSubscribeReadyRead();
